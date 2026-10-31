@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>jobFinder 岗位搜集工作台</title>
+<style>
+  :root{
+    --paper:#faf7f0; --paper-deep:#f3eee2; --card:#fffdf8;
+    --ink:#1c1a17; --ink-soft:#5c564a; --ink-faint:#8a8375;
+    --line:#e5dfd2; --line-strong:#c9c1ad;
+    --accent:#1a5c4a; --accent-deep:#124637; --accent-wash:#e7f0ec;
+    --amber:#b45309; --amber-bg:#fdf1dd;
+    --blue:#1d4ed8;  --blue-bg:#e3ebfd;
+    --purple:#7c3aed;--purple-bg:#f0e9fd;
+    --green:#15803d; --green-bg:#e2f5e8;
+    --gray:#6b7280;  --gray-bg:#ececec;
+    --serif:"Noto Serif SC","Source Han Serif SC","STSong","SimSun",serif;
+    --sans:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+    --radius:12px; --shadow:0 10px 24px rgba(28,26,23,.08);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--sans); color:var(--ink); background:var(--paper);
+    background-image:linear-gradient(180deg,#fbf8f1 0%,var(--paper) 40%,var(--paper-deep) 100%);
+    font-size:15px; line-height:1.6; min-height:100vh;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.35;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{max-width:1160px; margin:0 auto; padding:40px 24px 80px; position:relative; z-index:1}
+
+  /* ---------- 顶部报头 ---------- */
+  header.masthead{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    padding-bottom:20px; border-bottom:4px double var(--ink); animation:rise .55s ease both;
+  }
+  .masthead .kicker{font-family:var(--mono); font-size:12px; letter-spacing:.35em; color:var(--accent); text-transform:uppercase; margin-bottom:8px}
+  .masthead h1{font-family:var(--serif); font-size:46px; line-height:1.15; font-weight:700; letter-spacing:.02em}
+  .masthead h1 em{font-style:normal; color:var(--accent)}
+  .masthead .sub{color:var(--ink-soft); margin-top:6px; font-size:14px}
+  .mast-meta{text-align:right; font-size:13px; color:var(--ink-soft)}
+  .mast-meta .badge{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line-strong); border-radius:999px; padding:4px 12px; background:var(--card); margin-bottom:8px; font-size:12px}
+  .mast-meta .badge i{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block}
+  .mast-meta .date{font-family:var(--mono); font-size:13px; color:var(--ink)}
+
+  /* ---------- 步骤区 ---------- */
+  section{margin-top:56px; animation:rise .6s ease both}
+  section:nth-of-type(2){animation-delay:.07s}
+  section:nth-of-type(3){animation-delay:.14s}
+  .sec-head{display:flex; align-items:baseline; gap:18px; flex-wrap:wrap; margin-bottom:6px}
+  .sec-num{font-family:var(--mono); font-size:52px; font-weight:700; color:transparent; -webkit-text-stroke:1.5px var(--accent); line-height:1}
+  .sec-head h2{font-family:var(--serif); font-size:26px; font-weight:700}
+  .sec-head .en{font-family:var(--mono); font-size:11px; letter-spacing:.3em; text-transform:uppercase; color:var(--ink-faint); margin-left:auto}
+  .sec-desc{color:var(--ink-soft); font-size:13.5px; margin-bottom:22px; padding-left:2px}
+  .sec-desc b{color:var(--accent); font-weight:600}
+  hr.rule{border:none; border-top:1px solid var(--line); margin:0 0 24px}
+
+  /* ---------- 表单 ---------- */
+  .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:16px}
+  .field{display:flex; flex-direction:column; gap:7px}
+  .field label{font-size:12.5px; font-weight:600; color:var(--ink-soft); letter-spacing:.05em}
+  .field label .opt{color:var(--ink-faint); font-weight:400}
+  input[type=text],select{
+    font-family:var(--sans); font-size:14px; color:var(--ink);
+    background:var(--card); border:1px solid var(--line-strong); border-radius:9px;
+    padding:10px 12px; outline:none; transition:border-color .15s, box-shadow .15s; width:100%;
+  }
+  input[type=text]::placeholder{color:#b5ac9a}
+  input[type=text]:focus,select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(26,92,74,.14)}
+  select{cursor:pointer}
+  .span3{grid-column:span 3}.span4{grid-column:span 4}.span5{grid-column:span 5}.span6{grid-column:span 6}.span12{grid-column:span 12}
+
+  /* 关键词 chips */
+  .chips{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line-strong);
+    background:var(--card); border-radius:999px; padding:6px 8px 6px 13px; font-size:13.5px; cursor:pointer;
+    transition:all .15s; user-select:none;
+  }
+  .chip:hover{border-color:var(--accent); color:var(--accent)}
+  .chip.active{background:var(--accent); border-color:var(--accent); color:#fff}
+  .chip .x{display:inline-flex; width:17px; height:17px; border-radius:50%; align-items:center; justify-content:center; font-size:12px; line-height:1; background:rgba(0,0,0,.08)}
+  .chip.active .x{background:rgba(255,255,255,.25)}
+  .chip .x:hover{background:rgba(0,0,0,.2)}
+  .chip-add{display:inline-flex; align-items:center}
+  .chip-add input{width:150px; border-style:dashed; border-radius:999px; padding:6px 13px; font-size:13.5px; background:transparent}
+  .hint{font-size:12px; color:var(--ink-faint)}
+
+  /* ---------- 渠道卡片 ---------- */
+  .group{margin-bottom:26px}
+  .group-title{display:flex; align-items:center; gap:12px; margin-bottom:13px}
+  .group-title h3{font-family:var(--serif); font-size:17px; font-weight:700; white-space:nowrap}
+  .group-title .g-desc{font-size:12.5px; color:var(--ink-faint); white-space:nowrap}
+  .group-title::after{content:""; height:1px; background:var(--line); flex:1}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 16px 14px; display:flex; flex-direction:column; gap:9px;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .card:hover{transform:translateY(-3px); box-shadow:var(--shadow); border-color:var(--line-strong)}
+  .card .c-head{display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .card h4{font-size:15.5px; font-weight:700}
+  .card .c-desc{font-size:12.5px; color:var(--ink-soft); min-height:20px}
+  .card .c-url{
+    font-family:var(--mono); font-size:11px; color:var(--ink-faint);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; direction:rtl; text-align:left;
+    background:var(--paper); border:1px dashed var(--line); border-radius:7px; padding:5px 9px;
+  }
+  .card .c-btns{display:flex; gap:8px; margin-top:2px}
+  .card .cats{display:flex; flex-wrap:wrap; gap:6px}
+  .cat{font-size:11.5px; border:1px solid var(--line); background:var(--paper); border-radius:6px; padding:3px 8px; color:var(--ink-soft)}
+
+  /* ---------- 按钮 ---------- */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    font-family:var(--sans); font-size:13px; font-weight:600; letter-spacing:.02em;
+    border-radius:8px; padding:8px 14px; cursor:pointer; border:1px solid transparent;
+    transition:all .15s; text-decoration:none; line-height:1.3;
+  }
+  .btn svg{width:15px;height:15px;flex:none}
+  .btn-primary{background:var(--accent); color:#fff}
+  .btn-primary:hover{background:var(--accent-deep); transform:translateY(-1px); box-shadow:0 6px 14px rgba(26,92,74,.28)}
+  .btn-ghost{background:transparent; color:var(--ink); border-color:var(--line-strong)}
+  .btn-ghost:hover{border-color:var(--accent); color:var(--accent); transform:translateY(-1px)}
+  .btn-sm{padding:6px 11px; font-size:12.5px}
+  .btn-danger{background:transparent; color:#a13333; border-color:#d8bcbc}
+  .btn-danger:hover{background:#fbeeee; border-color:#a13333}
+  .icon-btn{
+    display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px;
+    border:1px solid var(--line-strong); border-radius:7px; background:var(--card); color:var(--ink-soft);
+    cursor:pointer; transition:all .15s;
+  }
+  .icon-btn svg{width:14px;height:14px}
+  .icon-btn:hover{border-color:var(--accent); color:var(--accent)}
+  .icon-btn.del:hover{border-color:#a13333; color:#a13333}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  a{color:var(--accent)}
+
+  /* ---------- 台账 ---------- */
+  .toolbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px}
+  .stats{display:flex; gap:18px; flex-wrap:wrap; margin-bottom:16px;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:14px 18px}
+  .stat{display:flex; flex-direction:column; gap:2px; min-width:64px}
+  .stat .n{font-family:var(--mono); font-size:24px; font-weight:700; line-height:1}
+  .stat .l{font-size:11.5px; color:var(--ink-faint); letter-spacing:.08em}
+  .stat.total .n{color:var(--ink)}
+  .filters{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .fchip{border:1px solid var(--line-strong); background:var(--card); border-radius:999px; padding:5px 13px; font-size:12.5px; cursor:pointer; transition:all .15s; color:var(--ink-soft)}
+  .fchip:hover{border-color:var(--accent); color:var(--accent)}
+  .fchip.active{background:var(--ink); border-color:var(--ink); color:#fff}
+  .search-box{position:relative; margin-left:auto}
+  .search-box svg{position:absolute; left:10px; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--ink-faint)}
+  .search-box input{padding-left:31px; width:210px}
+
+  .table-wrap{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); overflow-x:auto}
+  table{width:100%; border-collapse:collapse; min-width:960px}
+  thead th{
+    font-size:11.5px; font-weight:600; letter-spacing:.12em; color:var(--ink-faint); text-transform:uppercase;
+    text-align:left; padding:12px 14px; border-bottom:1px solid var(--line-strong); background:var(--paper); white-space:nowrap;
+  }
+  tbody td{padding:11px 14px; border-bottom:1px solid var(--line); font-size:13.5px; vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#f8f4ea}
+  td .company{font-weight:700}
+  td .pos{font-weight:600}
+  td a.job-link{display:inline-flex; align-items:center; gap:4px; text-decoration:none; border-bottom:1px dotted var(--accent); padding-bottom:1px}
+  td a.job-link svg{width:12px;height:12px}
+  td .note{color:var(--ink-soft); font-size:12.5px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  td .ops{display:flex; gap:6px}
+  .empty-row td{text-align:center; padding:44px 14px; color:var(--ink-faint)}
+  .empty-row .big{font-size:15px; color:var(--ink-soft); margin-bottom:4px; font-family:var(--serif)}
+
+  select.status{
+    appearance:none; -webkit-appearance:none; border:none; border-radius:999px; padding:4px 22px 4px 12px;
+    font-size:12px; font-weight:600; cursor:pointer; font-family:var(--sans);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%235c564a' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 8px center; outline:none;
+  }
+  .status-pending{background-color:var(--amber-bg); color:var(--amber)}
+  .status-applied{background-color:var(--blue-bg); color:var(--blue)}
+  .status-interview{background-color:var(--purple-bg); color:var(--purple)}
+  .status-offer{background-color:var(--green-bg); color:var(--green)}
+  .status-reject{background-color:var(--gray-bg); color:var(--gray)}
+
+  /* 添加/编辑表单 */
+  .add-panel{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-top:18px}
+  .add-panel h3{font-family:var(--serif); font-size:16px; margin-bottom:14px; display:flex; align-items:center; gap:8px}
+  .add-panel h3 .mode-tag{font-family:var(--mono); font-size:11px; background:var(--accent); color:#fff; border-radius:5px; padding:2px 8px; letter-spacing:.1em}
+  .form-foot{display:flex; gap:10px; margin-top:16px; align-items:center}
+  .req-star{color:#a13333}
+
+  /* ---------- 页脚 & 提示 ---------- */
+  footer{margin-top:70px; padding-top:18px; border-top:1px solid var(--line-strong);
+    display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-faint)}
+  #toast{
+    position:fixed; left:50%; bottom:34px; transform:translateX(-50%) translateY(16px);
+    background:var(--ink); color:#faf7f0; font-size:13.5px; padding:10px 20px; border-radius:999px;
+    opacity:0; pointer-events:none; transition:all .25s ease; z-index:99; box-shadow:0 12px 28px rgba(0,0,0,.25);
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)}to{opacity:1; transform:translateY(0)}}
+
+  /* ---------- 响应式 ---------- */
+  @media (max-width:900px){
+    .span3,.span4,.span5,.span6{grid-column:span 12}
+    .masthead h1{font-size:34px}
+    .sec-num{font-size:40px}
+    .search-box{margin-left:0}
+    .mast-meta{text-align:left}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <div class="kicker">REQUIREMENTS → CHANNELS → LEDGER</div>
+      <h1>jobFinder <em>岗位搜集工作台</em></h1>
+      <div class="sub">需求输入 → 渠道直达 → 汇总台账 ｜ 复刻 jobFinder 搜集工作流，数据仅存你自己的浏览器</div>
+    </div>
+    <div class="mast-meta">
+      <div class="badge"><i></i>数据仅存本地 · 不上传</div>
+      <div class="date" id="today"></div>
+    </div>
+  </header>
+
+  <!-- ============ 01 需求输入 ============ -->
+  <section id="step1">
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <h2>需求输入</h2>
+      <span class="en">Requirements</span>
+    </div>
+    <p class="sec-desc">先说清楚要找什么。<b>修改会实时更新下方渠道链接</b>，并自动保存在本地。</p>
+    <hr class="rule">
+    <div class="grid">
+      <div class="field span4">
+        <label for="city">工作城市</label>
+        <input type="text" id="city" placeholder="如：贵阳 / 广州 / 留空 = 全国">
+      </div>
+      <div class="field span5">
+        <label>岗位关键词 <span class="opt">（点选 = 设为当前搜索词，× 删除）</span></label>
+        <div class="chips" id="kwChips"></div>
+      </div>
+      <div class="field span3">
+        <label for="degree">学历要求</label>
+        <select id="degree">
+          <option>不限</option><option>大专</option><option>本科</option><option>硕士</option>
+        </select>
+      </div>
+      <div class="field span3">
+        <label for="salary">薪资范围 <span class="opt">可选</span></label>
+        <select id="salary">
+          <option>不限</option><option>3-5K</option><option>5-8K</option><option>8-12K</option><option>12-20K</option><option>20K以上</option>
+        </select>
+      </div>
+      <div class="field span3">
+        <label for="exp">经验要求 <span class="opt">可选</span></label>
+        <select id="exp">
+          <option>不限</option><option>应届生</option><option>1-3年</option><option>3-5年</option>
+        </select>
+      </div>
+      <div class="field span3">
+        <label for="jtype">招聘类型 <span class="opt">可选</span></label>
+        <select id="jtype">
+          <option>不限</option><option>全职</option><option>实习</option><option>校招</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 渠道直达 ============ -->
+  <section id="step2">
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2>渠道直达</h2>
+      <span class="en">Channels</span>
+    </div>
+    <p class="sec-desc">链接已按步骤① <b>预填搜索词</b>，点开即搜；「复制搜索词」可粘贴到 App 或站内搜索框。</p>
+    <hr class="rule">
+    <div id="channelArea"></div>
+  </section>
+
+  <!-- ============ 03 岗位台账 ============ -->
+  <section id="step3">
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2>岗位汇总台账</h2>
+      <span class="en">Ledger &amp; Export</span>
+    </div>
+    <p class="sec-desc">看中心仪的岗位就登记进来，<b>标记投递状态</b>，随时导出 Excel 可开的 CSV 汇总表。</p>
+    <hr class="rule">
+
+    <div class="stats" id="stats"></div>
+
+    <div class="toolbar">
+      <div class="filters" id="filters"></div>
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="搜公司 / 岗位 / 备注…">
+      </div>
+      <button class="btn btn-primary btn-sm" id="exportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        导出 CSV
+      </button>
+      <button class="btn btn-danger btn-sm" id="clearBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        清空
+      </button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:15%">公司</th><th style="width:15%">岗位</th><th style="width:8%">城市</th>
+          <th style="width:9%">渠道</th><th style="width:9%">薪资</th><th style="width:9%">状态</th>
+          <th style="width:16%">备注</th><th style="width:11%">链接</th><th style="width:8%">操作</th>
+        </tr></thead>
+        <tbody id="jobBody"></tbody>
+      </table>
+    </div>
+
+    <div class="add-panel" id="addPanel">
+      <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span id="panelTitle">登记新岗位</span><span class="mode-tag" id="modeTag" style="display:none">编辑中</span></h3>
+      <div class="grid">
+        <div class="field span3"><label>公司名称 <span class="req-star">*</span></label><input type="text" id="fCompany" placeholder="如：亚信安全"></div>
+        <div class="field span3"><label>岗位名称 <span class="req-star">*</span></label><input type="text" id="fPosition" placeholder="如：技术支持工程师"></div>
+        <div class="field span2" style="grid-column:span 2"><label>城市</label><input type="text" id="fCity" placeholder="南京"></div>
+        <div class="field span2" style="grid-column:span 2"><label>渠道来源</label>
+          <select id="fSource">
+            <option>BOSS直聘</option><option>智联招聘</option><option>前程无忧</option><option>猎聘</option>
+            <option>国聘</option><option>拉勾</option><option>高校人才网</option><option>人社公告</option>
+            <option>本地宝</option><option>微信公众号</option><option>校招平台</option><option>内推</option><option>其他</option>
+          </select>
+        </div>
+        <div class="field span2" style="grid-column:span 2"><label>薪资</label><input type="text" id="fSalary" placeholder="10-15K"></div>
+      </div>
+      <div class="grid" style="margin-top:16px">
+        <div class="field span5"><label>岗位链接</label><input type="text" id="fUrl" placeholder="https://…"></div>
+        <div class="field span7"><label>备注</label><input type="text" id="fNote" placeholder="投递进度、联系人、面试要点…"></div>
+      </div>
+      <div class="form-foot">
+        <button class="btn btn-primary" id="saveJobBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span id="saveBtnText">添加到台账</span></button>
+        <button class="btn btn-ghost" id="cancelEditBtn" style="display:none">取消编辑</button>
+        <span class="hint">带 * 为必填，其余可留空</span>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>jobFinder 岗位搜集工作台 ｜ 工作流参考：需求输入 → 多渠道搜集 → Excel 汇总</div>
+    <div id="storeTip">数据保存在本浏览器 localStorage，换电脑/浏览器不互通，建议定期「导出 CSV」备份。</div>
+  </footer>
+</div>
+
+<div id="toast" role="status"></div>
+
+<script>
+"use strict";
+/* ================= 基础工具 ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store = {
+  ok: true,
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ this.ok=false; return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ this.ok=false; } }
+};
+let toastTimer = null;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("show"), 1800);
+}
+async function copyText(text){
+  try{ await navigator.clipboard.writeText(text); toast("已复制：" + text); }
+  catch(e){
+    const ta = document.createElement("textarea"); ta.value = text;
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); toast("已复制：" + text); }
+    catch(_){ toast("复制失败，请手动复制"); }
+    ta.remove();
+  }
+}
+
+/* ================= 状态与持久化 ================= */
+const DEFAULT_REQ = { city:"", keywords:["网络工程师","运维工程师","实施工程师"], degree:"不限", salary:"不限", exp:"不限", type:"不限", activeKw:0 };
+const STATUS = {
+  pending:  { label:"待投递", color:"var(--amber)",  bg:"var(--amber-bg)"  },
+  applied:  { label:"已投递", color:"var(--blue)",   bg:"var(--blue-bg)"   },
+  interview:{ label:"面试",   color:"var(--purple)", bg:"var(--purple-bg)" },
+  offer:    { label:"Offer",  color:"var(--green)",  bg:"var(--green-bg)"  },
+  reject:   { label:"不合适", color:"var(--gray)",   bg:"var(--gray-bg)"   }
+};
+let req  = Object.assign({}, DEFAULT_REQ, store.get("jobfinder.req", {}));
+if(!Array.isArray(req.keywords) || req.keywords.length === 0) req.keywords = DEFAULT_REQ.keywords.slice();
+if(req.activeKw == null || req.activeKw >= req.keywords.length) req.activeKw = 0;
+let jobs = store.get("jobfinder.jobs", []);
+if(!Array.isArray(jobs)) jobs = [];
+let filterStatus = "all", searchQ = "", editingId = null;
+
+function saveReq(){ store.set("jobfinder.req", req); if(!store.ok) showStoreTip(); }
+function saveJobs(){ store.set("jobfinder.jobs", jobs); if(!store.ok) showStoreTip(); }
+function showStoreTip(){ $("#storeTip").textContent = "⚠ 当前浏览器不支持本地存储（隐私模式？），数据仅在本页内存中，刷新即丢，请尽快导出 CSV 备份。"; }
+
+/* ================= 渠道配置 ================= */
+const CITY_CODES = { "北京":"101010100","上海":"101020100","广州":"101280100","深圳":"101280600","杭州":"101210100","成都":"101270100","武汉":"101200100","南京":"101190100","西安":"101110100","重庆":"101040100","天津":"101030100","苏州":"101190400","郑州":"101180100","长沙":"101250100","东莞":"101281600" };
+const E = encodeURIComponent;
+const kw = () => req.keywords[req.activeKw] || "";
+const city = () => (req.city || "").trim();
+/* 复制搜索词：关键词 + 学历 + 薪资 + 经验 + 类型 + 城市（去掉"不限"与空值） */
+function baseWord(){
+  const parts = [kw()];
+  if(req.degree !== "不限") parts.push(req.degree);
+  if(req.salary !== "不限") parts.push(req.salary);
+  if(req.exp !== "不限") parts.push(req.exp);
+  if(req.type !== "不限") parts.push(req.type);
+  if(city()) parts.push(city());
+  return parts.join(" ");
+}
+function bingURL(q){ return "https://www.bing.com/search?q=" + E(q); }
+
+const GROUPS = [
+  { name:"招聘网站", desc:"主流站点 · 关键词已预填", channels:[
+    { name:"BOSS直聘", desc:"常用城市已映射；未收录城市回退全国，打开后可再选", hideWord:true,
+      url: () => "https://www.zhipin.com/web/geek/job?query=" + E(kw()) + "&city=" + (CITY_CODES[city()] || "100010000") },
+    { name:"智联招聘", desc:"打开后可在站内再筛选城市",
+      url: () => "https://sou.zhaopin.com/?kw=" + E(kw()) },
+    { name:"前程无忧 51Job", desc:"打开后可在站内再筛选城市",
+      url: () => "https://we.51job.com/pc/search?keyword=" + E(kw()) },
+    { name:"猎聘", desc:"偏中高端岗位，应届可用",
+      url: () => "https://www.liepin.com/zhaopin/?key=" + E(kw()) },
+    { name:"国聘", desc:"国企央企岗位为主，校招信息多",
+      url: () => "https://www.iguopin.com/jobs?keyword=" + E(kw()) },
+    { name:"拉勾网", desc:"互联网技术岗为主",
+      url: () => "https://www.lagou.com/wn/jobs?kd=" + E(kw()) }
+  ]},
+  { name:"公告与本地渠道", desc:"编制、国企、本地企业招聘公告", channels:[
+    { name:"人社招聘公告", desc:"搜索「城市 + 人社局 + 招聘公告」，事业单位/国企常见",
+      url: () => bingURL([city() || "贵州", "人社局", "招聘公告"].filter(Boolean).join(" ")),
+      word: () => [city() || "贵州", "人社局", "招聘公告"].filter(Boolean).join(" ") },
+    { name:"本地宝（招聘栏目）", desc:"本地企业招聘信息汇总，城市生活站",
+      url: () => bingURL([city() || "贵州", "本地宝", "招聘"].filter(Boolean).join(" ")),
+      word: () => [city() || "贵州", "本地宝", "招聘"].filter(Boolean).join(" ") },
+    { name:"高校人才网", desc:"高校、职业院校岗位（实验/网络/运维等）",
+      url: () => "https://www.gaoxiaojob.com/",
+      word: () => baseWord() + " 高校" },
+    { name:"微信公众号（搜狗搜索）", desc:"搜公众号文章里的招聘推文，小众岗位多",
+      url: () => "https://weixin.sogou.com/weixin?type=2&query=" + E(kw() + " 招聘"),
+      word: () => kw() + " 招聘" }
+  ]},
+  { name:"校园专属", desc:"你的学校校招平台", channels:[
+    { name:"贵阳学院 · 校招平台", desc:"gyu.applyoffer.com ｜ 登录后按以下对口分类筛选岗位",
+      url: () => "https://gyu.applyoffer.com/",
+      word: () => "校招 " + kw(),
+      cats: ["实施 (30-23)","系统集成 (30-11)","运维 (30-9)","通信技术 (30-24)","网络与信息安全 (30-22)","技术支持 (30-1)"] }
+  ]}
+];
+
+function renderChannels(){
+  const area = $("#channelArea");
+  area.innerHTML = GROUPS.map(g => `
+    <div class="group">
+      <div class="group-title"><h3>${esc(g.name)}</h3><span class="g-desc">${esc(g.desc)} ｜ 当前搜索词：<b style="color:var(--accent)">${esc(kw())}</b></span></div>
+      <div class="cards">
+        ${g.channels.map(c => {
+          const url = c.url();
+          const word = c.word ? c.word() : baseWord();
+          return `
+          <div class="card">
+            <div class="c-head"><h4>${esc(c.name)}</h4></div>
+            <div class="c-desc">${esc(c.desc)}</div>
+            ${c.cats ? `<div class="cats">${c.cats.map(x => `<span class="cat">${esc(x)}</span>`).join("")}</div>` : ""}
+            <div class="c-url" title="${esc(url)}">${esc(url)}</div>
+            <div class="c-btns">
+              <a class="btn btn-primary btn-sm" href="${esc(url)}" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                打开链接</a>
+              <button class="btn btn-ghost btn-sm" data-copy="${esc(word)}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                复制搜索词</button>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`).join("");
+  area.querySelectorAll("[data-copy]").forEach(btn =>
+    btn.addEventListener("click", () => copyText(btn.dataset.copy)));
+}
+
+/* ================= 步骤① 表单 ================= */
+function renderChips(){
+  $("#kwChips").innerHTML = req.keywords.map((k, i) => `
+    <span class="chip ${i === req.activeKw ? "active" : ""}" data-i="${i}" title="点击设为当前搜索词">${esc(k)}<span class="x" data-del="${i}" role="button" aria-label="删除关键词 ${esc(k)}">×</span></span>
+  `).join("") + `<span class="chip-add"><input type="text" id="kwInput" placeholder="加关键词，回车"></span>`;
+  $("#kwChips").querySelectorAll(".chip").forEach(el => {
+    el.addEventListener("click", e => {
+      if(e.target.dataset.del !== undefined) return;
+      req.activeKw = +el.dataset.i; saveReq(); renderChips(); renderChannels();
+    });
+    el.querySelector(".x").addEventListener("click", e => {
+      e.stopPropagation();
+      if(req.keywords.length <= 1){ toast("至少保留一个关键词"); return; }
+      req.keywords.splice(+e.target.dataset.del, 1);
+      req.activeKw = Math.min(req.activeKw, req.keywords.length - 1);
+      saveReq(); renderChips(); renderChannels();
+    });
+  });
+  const inp = $("#kwInput");
+  inp.addEventListener("keydown", e => {
+    if(e.key === "Enter"){
+      const v = inp.value.trim();
+      if(v && !req.keywords.includes(v)){ req.keywords.push(v); req.activeKw = req.keywords.length - 1; saveReq(); renderChips(); renderChannels(); }
+    }
+  });
+}
+function bindReqForm(){
+  const bind = (id, key) => {
+    const el = $(id);
+    el.value = req[key] ?? "不限";
+    el.addEventListener("input", () => { req[key] = el.value; saveReq(); renderChannels(); });
+    el.addEventListener("change", () => { req[key] = el.value; saveReq(); renderChannels(); });
+  };
+  bind("#city", "city"); bind("#degree", "degree"); bind("#salary", "salary"); bind("#exp", "exp"); bind("#jtype", "type");
+}
+
+/* ================= 步骤③ 台账 ================= */
+function filteredJobs(){
+  return jobs.slice().sort((a,b) => b.createdAt - a.createdAt).filter(j => {
+    if(filterStatus !== "all" && j.status !== filterStatus) return false;
+    if(searchQ){
+      const q = searchQ.toLowerCase();
+      if(![j.company, j.position, j.note, j.city].some(v => (v || "").toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+}
+function renderStats(){
+  const counts = { all: jobs.length };
+  Object.keys(STATUS).forEach(k => counts[k] = jobs.filter(j => j.status === k).length);
+  $("#stats").innerHTML = `
+    <div class="stat total"><span class="n">${counts.all}</span><span class="l">全部岗位</span></div>
+    ${Object.entries(STATUS).map(([k, s]) => `
+      <div class="stat"><span class="n" style="color:${s.color}">${counts[k]}</span><span class="l">${s.label}</span></div>`).join("")}`;
+}
+function renderFilters(){
+  const items = [["all","全部"], ...Object.entries(STATUS).map(([k,s]) => [k, s.label])];
+  $("#filters").innerHTML = items.map(([k, label]) =>
+    `<button class="fchip ${filterStatus === k ? "active" : ""}" data-f="${k}">${label}</button>`).join("");
+  $("#filters").querySelectorAll(".fchip").forEach(b =>
+    b.addEventListener("click", () => { filterStatus = b.dataset.f; renderFilters(); renderJobs(); }));
+}
+function renderJobs(){
+  renderStats();
+  const list = filteredJobs();
+  const body = $("#jobBody");
+  if(list.length === 0){
+    body.innerHTML = `<tr class="empty-row"><td colspan="9">
+      <div class="big">${jobs.length === 0 ? "台账还是空的" : "没有符合筛选条件的记录"}</div>
+      <div>${jobs.length === 0 ? "去上方渠道逛一圈，看中心仪的岗位就登记进来 ↓" : "换个筛选条件或清空搜索词试试"}</div>
+    </td></tr>`;
+    return;
+  }
+  body.innerHTML = list.map(j => {
+    const s = STATUS[j.status] || STATUS.pending;
+    return `<tr data-id="${j.id}">
+      <td><span class="company">${esc(j.company)}</span></td>
+      <td><span class="pos">${esc(j.position)}</span></td>
+      <td>${esc(j.city || "—")}</td>
+      <td>${esc(j.source || "—")}</td>
+      <td style="font-family:var(--mono);font-size:12.5px">${esc(j.salary || "—")}</td>
+      <td>
+        <select class="status status-${j.status}" data-act="status" aria-label="投递状态">
+          ${Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${k === j.status ? "selected" : ""}>${v.label}</option>`).join("")}
+        </select>
+      </td>
+      <td><span class="note" title="${esc(j.note || "")}">${esc(j.note || "—")}</span></td>
+      <td>${j.url ? `<a class="job-link" href="${esc(j.url)}" target="_blank" rel="noopener">打开 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : "—"}</td>
+      <td><div class="ops">
+        <button class="icon-btn" data-act="edit" title="编辑" aria-label="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
+        <button class="icon-btn del" data-act="del" title="删除" aria-label="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+      </div></td>
+    </tr>`;
+  }).join("");
+
+  body.querySelectorAll("tr[data-id]").forEach(tr => {
+    const id = tr.dataset.id;
+    tr.querySelector('[data-act="status"]').addEventListener("change", e => {
+      const job = jobs.find(x => x.id === id); job.status = e.target.value;
+      saveJobs(); renderJobs();
+      toast("状态已更新：" + STATUS[job.status].label);
+    });
+    tr.querySelector('[data-act="edit"]').addEventListener("click", () => startEdit(id));
+    tr.querySelector('[data-act="del"]').addEventListener("click", () => {
+      const job = jobs.find(x => x.id === id);
+      if(confirm(`确定删除「${job.company} - ${job.position}」吗？`)){
+        jobs = jobs.filter(x => x.id !== id);
+        if(editingId === id) cancelEdit();
+        saveJobs(); renderJobs(); toast("已删除");
+      }
+    });
+  });
+}
+
+/* 添加 / 编辑 */
+function resetForm(){
+  ["#fCompany","#fPosition","#fCity","#fSalary","#fUrl","#fNote"].forEach(s => $(s).value = "");
+  $("#fSource").value = "BOSS直聘";
+}
+function startEdit(id){
+  const j = jobs.find(x => x.id === id); if(!j) return;
+  editingId = id;
+  $("#fCompany").value = j.company || ""; $("#fPosition").value = j.position || "";
+  $("#fCity").value = j.city || ""; $("#fSource").value = j.source || "其他";
+  $("#fSalary").value = j.salary || ""; $("#fUrl").value = j.url || ""; $("#fNote").value = j.note || "";
+  $("#panelTitle").textContent = "编辑岗位"; $("#modeTag").style.display = "inline";
+  $("#saveBtnText").textContent = "保存修改"; $("#cancelEditBtn").style.display = "inline-flex";
+  $("#addPanel").scrollIntoView({ behavior:"smooth", block:"center" });
+  $("#fCompany").focus();
+}
+function cancelEdit(){
+  editingId = null; resetForm();
+  $("#panelTitle").textContent = "登记新岗位"; $("#modeTag").style.display = "none";
+  $("#saveBtnText").textContent = "添加到台账"; $("#cancelEditBtn").style.display = "none";
+}
+function saveJobFromForm(){
+  const company = $("#fCompany").value.trim(), position = $("#fPosition").value.trim();
+  if(!company || !position){ toast("公司名称和岗位名称为必填"); return; }
+  const data = {
+    company, position, city: $("#fCity").value.trim(), source: $("#fSource").value,
+    salary: $("#fSalary").value.trim(), url: $("#fUrl").value.trim(), note: $("#fNote").value.trim()
+  };
+  if(editingId){
+    const j = jobs.find(x => x.id === editingId); Object.assign(j, data);
+    toast("已保存修改"); cancelEdit();
+  }else{
+    jobs.push(Object.assign({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), status:"pending", createdAt: Date.now() }, data));
+    toast("已添加到台账"); resetForm();
+  }
+  saveJobs(); renderJobs();
+}
+
+/* ================= CSV 导出 ================= */
+function csvCell(v){
+  const s = String(v ?? "");
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function exportCSV(){
+  if(jobs.length === 0){ toast("暂无岗位记录，先去登记几条吧"); return; }
+  const header = ["公司名称","岗位名称","城市","渠道来源","薪资","投递状态","备注","链接","登记时间"];
+  const rows = jobs.slice().sort((a,b) => a.createdAt - b.createdAt).map(j => [
+    j.company, j.position, j.city, j.source, j.salary, STATUS[j.status]?.label || j.status, j.note, j.url,
+    new Date(j.createdAt).toLocaleString("zh-CN")
+  ]);
+  const csv = "\uFEFF" + [header, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const d = new Date(), pad = n => String(n).padStart(2, "0");
+  a.download = `岗位汇总表_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.csv`;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  toast("已导出 " + jobs.length + " 条岗位记录");
+}
+
+/* ================= 初始化 ================= */
+$("#today").textContent = new Date().toLocaleDateString("zh-CN", { year:"numeric", month:"long", day:"numeric", weekday:"long" });
+$("#searchInput").addEventListener("input", e => { searchQ = e.target.value.trim(); renderJobs(); });
+$("#exportBtn").addEventListener("click", exportCSV);
+$("#clearBtn").addEventListener("click", () => {
+  if(jobs.length === 0){ toast("台账已经是空的"); return; }
+  if(confirm(`确定清空全部 ${jobs.length} 条岗位记录吗？此操作不可恢复（建议先导出 CSV 备份）。`)){
+    jobs = []; cancelEdit(); saveJobs(); renderJobs(); toast("已清空");
+  }
+});
+$("#saveJobBtn").addEventListener("click", saveJobFromForm);
+$("#cancelEditBtn").addEventListener("click", cancelEdit);
+bindReqForm();
+renderChips();
+renderChannels();
+renderFilters();
+renderJobs();
+if(!store.ok) showStoreTip();
+</script>
+</body>
+</html>
