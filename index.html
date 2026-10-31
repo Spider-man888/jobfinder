@@ -72,7 +72,7 @@
   input[type=text]::placeholder{color:#b5ac9a}
   input[type=text]:focus,select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(26,92,74,.14)}
   select{cursor:pointer}
-  .span3{grid-column:span 3}.span4{grid-column:span 4}.span5{grid-column:span 5}.span6{grid-column:span 6}.span12{grid-column:span 12}
+  .span2{grid-column:span 2}.span3{grid-column:span 3}.span4{grid-column:span 4}.span5{grid-column:span 5}.span6{grid-column:span 6}.span7{grid-column:span 7}.span12{grid-column:span 12}
 
   /* 关键词 chips */
   .chips{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
@@ -207,7 +207,7 @@
 
   /* ---------- 响应式 ---------- */
   @media (max-width:900px){
-    .span3,.span4,.span5,.span6{grid-column:span 12}
+    .span2,.span3,.span4,.span5,.span6,.span7{grid-column:span 12}
     .masthead h1{font-size:34px}
     .sec-num{font-size:40px}
     .search-box{margin-left:0}
@@ -303,7 +303,7 @@
       <div class="filters" id="filters"></div>
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="searchInput" placeholder="搜公司 / 岗位 / 备注…">
+        <input type="text" id="searchInput" placeholder="搜公司 / 岗位 / 城市 / 备注…">
       </div>
       <button class="btn btn-primary btn-sm" id="exportBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -331,15 +331,15 @@
       <div class="grid">
         <div class="field span3"><label>公司名称 <span class="req-star">*</span></label><input type="text" id="fCompany" placeholder="如：亚信安全"></div>
         <div class="field span3"><label>岗位名称 <span class="req-star">*</span></label><input type="text" id="fPosition" placeholder="如：技术支持工程师"></div>
-        <div class="field span2" style="grid-column:span 2"><label>城市</label><input type="text" id="fCity" placeholder="南京"></div>
-        <div class="field span2" style="grid-column:span 2"><label>渠道来源</label>
+        <div class="field span2"><label>城市</label><input type="text" id="fCity" placeholder="南京"></div>
+        <div class="field span2"><label>渠道来源</label>
           <select id="fSource">
             <option>BOSS直聘</option><option>智联招聘</option><option>前程无忧</option><option>猎聘</option>
             <option>国聘</option><option>拉勾</option><option>高校人才网</option><option>人社公告</option>
             <option>本地宝</option><option>微信公众号</option><option>校招平台</option><option>内推</option><option>其他</option>
           </select>
         </div>
-        <div class="field span2" style="grid-column:span 2"><label>薪资</label><input type="text" id="fSalary" placeholder="10-15K"></div>
+        <div class="field span2"><label>薪资</label><input type="text" id="fSalary" placeholder="10-15K"></div>
       </div>
       <div class="grid" style="margin-top:16px">
         <div class="field span5"><label>岗位链接</label><input type="text" id="fUrl" placeholder="https://…"></div>
@@ -365,7 +365,7 @@
 "use strict";
 /* ================= 基础工具 ================= */
 const $ = s => document.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;">":"&gt;"'":"&#39;"}[c]));
 const store = {
   ok: true,
   get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ this.ok=false; return d; } },
@@ -400,7 +400,13 @@ let req  = Object.assign({}, DEFAULT_REQ, store.get("jobfinder.req", {}));
 if(!Array.isArray(req.keywords) || req.keywords.length === 0) req.keywords = DEFAULT_REQ.keywords.slice();
 if(req.activeKw == null || req.activeKw >= req.keywords.length) req.activeKw = 0;
 let jobs = store.get("jobfinder.jobs", []);
-if(!Array.isArray(jobs)) jobs = [];
+/* 数据规范化：过滤非法记录，兑底脏字段，避免旧数据/手改数据导致统计漏计或显示错位 */
+jobs = (Array.isArray(jobs) ? jobs : []).filter(j => j && typeof j === "object" && j.company && j.position).map(j => Object.assign({
+  city:"", source:"", salary:"", url:"", note:"", status:"pending", createdAt: Date.now()
+}, j, {
+  status: STATUS[j.status] ? j.status : "pending",
+  createdAt: Number.isFinite(j.createdAt) ? j.createdAt : Date.now()
+}));
 let filterStatus = "all", searchQ = "", editingId = null;
 
 function saveReq(){ store.set("jobfinder.req", req); if(!store.ok) showStoreTip(); }
@@ -514,7 +520,10 @@ function renderChips(){
   inp.addEventListener("keydown", e => {
     if(e.key === "Enter"){
       const v = inp.value.trim();
-      if(v && !req.keywords.includes(v)){ req.keywords.push(v); req.activeKw = req.keywords.length - 1; saveReq(); renderChips(); renderChannels(); }
+      if(!v) return;
+      if(req.keywords.includes(v)){ toast("该关键词已存在"); return; }
+      req.keywords.push(v); req.activeKw = req.keywords.length - 1;
+      saveReq(); renderChips(); renderChannels();
     }
   });
 }
@@ -615,7 +624,9 @@ function startEdit(id){
   const j = jobs.find(x => x.id === id); if(!j) return;
   editingId = id;
   $("#fCompany").value = j.company || ""; $("#fPosition").value = j.position || "";
-  $("#fCity").value = j.city || ""; $("#fSource").value = j.source || "其他";
+  $("#fCity").value = j.city || "";
+  const srcSel = $("#fSource");
+  srcSel.value = [...srcSel.options].some(o => o.value === j.source) ? j.source : "其他";
   $("#fSalary").value = j.salary || ""; $("#fUrl").value = j.url || ""; $("#fNote").value = j.note || "";
   $("#panelTitle").textContent = "编辑岗位"; $("#modeTag").style.display = "inline";
   $("#saveBtnText").textContent = "保存修改"; $("#cancelEditBtn").style.display = "inline-flex";
@@ -630,9 +641,12 @@ function cancelEdit(){
 function saveJobFromForm(){
   const company = $("#fCompany").value.trim(), position = $("#fPosition").value.trim();
   if(!company || !position){ toast("公司名称和岗位名称为必填"); return; }
+  /* 链接规范化：仅允许 http(s)，其余一律补 https:// 前缀，阻断 javascript: 等注入 */
+  let url = $("#fUrl").value.trim();
+  if(url && !/^https?:\/\//i.test(url)) url = "https://" + url;
   const data = {
     company, position, city: $("#fCity").value.trim(), source: $("#fSource").value,
-    salary: $("#fSalary").value.trim(), url: $("#fUrl").value.trim(), note: $("#fNote").value.trim()
+    salary: $("#fSalary").value.trim(), url, note: $("#fNote").value.trim()
   };
   if(editingId){
     const j = jobs.find(x => x.id === editingId); Object.assign(j, data);
@@ -646,7 +660,9 @@ function saveJobFromForm(){
 
 /* ================= CSV 导出 ================= */
 function csvCell(v){
-  const s = String(v ?? "");
+  let s = String(v ?? "");
+  /* 防 CSV 公式注入：Excel 会把 = / + / @ 开头的单元格当公式执行 */
+  if(/^[=+@]/.test(s)) s = "'" + s;
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 function exportCSV(){
